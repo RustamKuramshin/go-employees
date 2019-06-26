@@ -180,7 +180,11 @@ func basicAuthMid(handler http.HandlerFunc, realm string) http.HandlerFunc {
 
 func main() {
 	router := mux.NewRouter()
-	logFile, errfile := os.OpenFile("http-server.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	logFile, err := os.OpenFile("http-server.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatal("Ошибка создания открытия лог-файла : ", err)
+		return
+	}
 
 	router.Handle("/", handlers.LoggingHandler(logFile, getHome)).Methods("GET")
 	router.Handle("/database", handlers.LoggingHandler(logFile, getCurrentDb)).Methods("GET")
@@ -191,15 +195,12 @@ func main() {
 
 	defer db.Close()
 
-	errserve := http.ListenAndServe(":"+connPort, handlers.CompressHandler(router))
+	//errserve := http.ListenAndServe(":"+connPort, handlers.CompressHandler(router))
+	err = http.ListenAndServeTLS(":"+connPort, "cert.pem", "key.pem", handlers.CompressHandler(router))
 
-	if errserve != nil {
-		log.Fatal("Ошибка запуска http-сервера : ", errserve)
+	if err != nil {
+		log.Fatal("Ошибка запуска http-сервера : ", err)
 		return
 	}
 
-	if errfile != nil {
-		log.Fatal("Ошибка создания открытия лог-файла : ", errfile)
-		return
-	}
 }
